@@ -498,8 +498,8 @@ public static partial class AsepriteFileLoader
                             uint flags = reader.ReadDword();
                             string? text = null;
                             Rgba32? color = null;
-                            AsepriteUserPropertiesMap? userProperties = null;
-                            Dictionary<uint, AsepriteUserPropertiesMap>? extensionProperties = null;
+                            AsepritePropertiesMap? userProperties = null;
+                            Dictionary<uint, AsepritePropertiesMap>? extensionProperties = null;
 
                             if (Calc.HasFlag(flags, ASE_USER_DATA_FLAG_HAS_TEXT))
                             {
@@ -519,7 +519,7 @@ public static partial class AsepriteFileLoader
                                 uint propertyMapCount = reader.ReadDword();
                                 for (uint mapIndex = 0; mapIndex < propertyMapCount; ++mapIndex)
                                 {
-                                    AsepriteUserPropertiesMap properties = ReadUserPropertyMap(reader);
+                                    AsepritePropertiesMap properties = ReadUserPropertyMap(reader);
                                     if (properties.Key == 0) // contains user properties
                                     {
                                         userProperties = properties;
@@ -527,7 +527,7 @@ public static partial class AsepriteFileLoader
                                     else                     // contains extension properties
                                     {
                                         if (extensionProperties == null)
-                                            extensionProperties = new Dictionary<uint, AsepriteUserPropertiesMap>();
+                                            extensionProperties = new Dictionary<uint, AsepritePropertiesMap>();
                                         extensionProperties[properties.Key] = properties;
                                     }
                                 }
@@ -735,116 +735,116 @@ public static partial class AsepriteFileLoader
         return new AsepriteFile(fileName, palette, fileHeader.CanvasWidth, fileHeader.CanvasHeight, depth, frames, layers, tags, slices, tilesets, spriteUserData, warnings);
     }
 
-    private static AsepriteUserPropertiesMap ReadUserPropertyMap(AsepriteBinaryReader reader)
+    private static AsepritePropertiesMap ReadUserPropertyMap(AsepriteBinaryReader reader)
     {
-        AsepriteUserPropertiesMap map = new AsepriteUserPropertiesMap();
+        AsepritePropertiesMap map = new AsepritePropertiesMap();
         map.Key = reader.ReadDword();
 
         uint propertyCount = reader.ReadDword();
         for (uint propertyIndex = 0; propertyIndex < propertyCount; ++propertyIndex)
         {
-            AsepriteUserProperty property = ReadUserProperty(reader);
+            AsepriteProperty property = ReadUserProperty(reader);
             map.PropertyMap[property.Name] = property;
         }
 
         return map;
     }
 
-    private static AsepriteUserProperty ReadUserProperty(AsepriteBinaryReader reader)
+    private static AsepriteProperty ReadUserProperty(AsepriteBinaryReader reader)
     {
-        var property = new AsepriteUserProperty();
+        var property = new AsepriteProperty();
         property.Name = reader.ReadString();
-        property.Type = (AsepriteUserPropertyType)reader.ReadWord();
+        property.Type = (AsepritePropertyType)reader.ReadWord();
         property.Value = ReadUserPropertyValue(reader, property.Type);
 
         return property;
     }
 
-    private static object ReadUserPropertyValue(AsepriteBinaryReader reader, AsepriteUserPropertyType type)
+    private static object ReadUserPropertyValue(AsepriteBinaryReader reader, AsepritePropertyType type)
     {
         object value;
 
         switch (type)
         {
-            case AsepriteUserPropertyType.Bool:
+            case AsepritePropertyType.Bool:
                 value = (reader.ReadByte() != 0);
                 break;
 
-            case AsepriteUserPropertyType.Int8:
+            case AsepritePropertyType.Int8:
                 value = (sbyte)reader.ReadByte();
                 break;
 
-            case AsepriteUserPropertyType.UInt8:
+            case AsepritePropertyType.UInt8:
                 value = reader.ReadByte();
                 break;
 
-            case AsepriteUserPropertyType.Int16:
+            case AsepritePropertyType.Int16:
                 value = reader.ReadShort();
                 break;
 
-            case AsepriteUserPropertyType.UInt16:
+            case AsepritePropertyType.UInt16:
                 value = reader.ReadWord();
                 break;
 
-            case AsepriteUserPropertyType.Int32:
+            case AsepritePropertyType.Int32:
                 value = reader.ReadLong();
                 break;
 
-            case AsepriteUserPropertyType.UInt32:
+            case AsepritePropertyType.UInt32:
                 value = reader.ReadDword();
                 break;
 
-            case AsepriteUserPropertyType.Int64:
+            case AsepritePropertyType.Int64:
                 value = reader.ReadUnsafe<long>(sizeof(long));
                 break;
 
-            case AsepriteUserPropertyType.UInt64:
+            case AsepritePropertyType.UInt64:
                 value = reader.ReadUnsafe<ulong>(sizeof(ulong));
                 break;
 
-            case AsepriteUserPropertyType.Fixed:
+            case AsepritePropertyType.Fixed:
                 value = reader.ReadFixed();
                 break;
 
-            case AsepriteUserPropertyType.Float:
+            case AsepritePropertyType.Float:
                 value = reader.ReadFloat();
                 break;
 
-            case AsepriteUserPropertyType.Double:
+            case AsepritePropertyType.Double:
                 value = reader.ReadUnsafe<double>(sizeof(double));
                 break;
 
-            case AsepriteUserPropertyType.String:
+            case AsepritePropertyType.String:
                 value = reader.ReadString();
                 break;
 
-            case AsepriteUserPropertyType.Point:
+            case AsepritePropertyType.Point:
                 value = new Point(reader.ReadLong(), reader.ReadLong());
                 break;
 
-            case AsepriteUserPropertyType.Size:
+            case AsepritePropertyType.Size:
                 value = new Size(reader.ReadLong(), reader.ReadLong());
                 break;
 
-            case AsepriteUserPropertyType.Rect:
+            case AsepritePropertyType.Rect:
                 value = new Rectangle(
                     reader.ReadLong(), reader.ReadLong(),
                     reader.ReadLong(), reader.ReadLong());
                 break;
 
-            case AsepriteUserPropertyType.Vector:
+            case AsepritePropertyType.Vector:
                 uint elementCount = reader.ReadDword();
-                AsepriteUserPropertyType allElementTypes = (AsepriteUserPropertyType)reader.ReadWord();
+                AsepritePropertyType allElementTypes = (AsepritePropertyType)reader.ReadWord();
 
-                var vector = new AsepriteUserProperty[elementCount];
-                if (allElementTypes == AsepriteUserPropertyType.None) // all elements are not the same type
+                var vector = new AsepriteProperty[elementCount];
+                if (allElementTypes == AsepritePropertyType.None) // all elements are not the same type
                 {
                     for (int elementIndex = 0; elementIndex < elementCount; ++elementIndex)
                     {
-                        AsepriteUserPropertyType elementType = (AsepriteUserPropertyType)reader.ReadWord();
+                        AsepritePropertyType elementType = (AsepritePropertyType)reader.ReadWord();
                         object elementValue = ReadUserPropertyValue(reader, elementType);
 
-                        vector[elementIndex] = new AsepriteUserProperty { Type = elementType, Value = elementValue };
+                        vector[elementIndex] = new AsepriteProperty { Type = elementType, Value = elementValue };
                     }
                 }
                 else // all elements are the same type
@@ -853,29 +853,29 @@ public static partial class AsepriteFileLoader
                     {
                         object elementValue = ReadUserPropertyValue(reader, allElementTypes);
                         vector[elementIndex] =
-                            new AsepriteUserProperty { Type = allElementTypes, Value = elementValue };
+                            new AsepriteProperty { Type = allElementTypes, Value = elementValue };
                     }
                 }
 
                 value = vector;
                 break;
 
-            case AsepriteUserPropertyType.Properties: // nested property map
+            case AsepritePropertyType.Properties: // nested property map
 
-                AsepriteUserPropertiesMap map = new AsepriteUserPropertiesMap();
+                AsepritePropertiesMap map = new AsepritePropertiesMap();
                 map.Key = ushort.MaxValue; // Null, not used
 
                 uint propertyCount = reader.ReadDword();
                 for (int propertyIndex = 0; propertyIndex < propertyCount; ++propertyIndex)
                 {
-                    AsepriteUserProperty property = ReadUserProperty(reader);
+                    AsepriteProperty property = ReadUserProperty(reader);
                     map.PropertyMap[property.Name] = property;
                 }
 
                 value = map;
                 break;
 
-            case AsepriteUserPropertyType.Uuid:
+            case AsepritePropertyType.Uuid:
                 value = reader.ReadBytes(16);
                 break;
 

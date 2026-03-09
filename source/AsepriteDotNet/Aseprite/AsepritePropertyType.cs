@@ -9,7 +9,7 @@ namespace AsepriteDotNet.Aseprite;
 /// <summary>
 /// Indicates the type of value stored in an AsepriteUserProperty.
 /// </summary>
-public enum AsepriteUserPropertyType : ushort
+public enum AsepritePropertyType : ushort
 {
     /// <summary>No type, invalid.</summary>
     None,
@@ -46,10 +46,10 @@ public enum AsepriteUserPropertyType : ushort
     /// <summary>Value is a <see cref="AsepriteDotNet.Common.Rectangle" /></summary>
     Rect,
     /// <summary>
-    /// Value is a <see cref="List{T}" /> of type <see cref="AsepriteDotNet.Aseprite.Types.AsepriteUserProperty" />
+    /// Value is a <see cref="List{T}" /> of type <see cref="AsepriteProperty" />
     /// </summary>
     Vector,
-    /// <summary>Value is a <see cref="AsepriteUserPropertiesMap" /></summary>
+    /// <summary>Value is a <see cref="AsepritePropertiesMap" /></summary>
     Properties,
     /// <summary>Value is a `byte[16]`</summary>
     Uuid,
