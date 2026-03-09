@@ -3,6 +3,7 @@
 //  See LICENSE file in the project root for full license information.
 
 using System;
+using System.ComponentModel;
 using AsepriteDotNet.Aseprite;
 using AsepriteDotNet.Aseprite.Document;
 using AsepriteDotNet.Aseprite.Types;
@@ -217,7 +218,6 @@ public static partial class AsepriteFileLoader
 
         return tags.ToArray();
     }
-
 
     private static AsepriteFile LoadFile(string fileName, AsepriteBinaryReader reader, bool preMultiplyAlpha)
     {
@@ -498,6 +498,8 @@ public static partial class AsepriteFileLoader
                             uint flags = reader.ReadDword();
                             string? text = null;
                             Rgba32? color = null;
+                            AsepriteUserPropertiesMap? userProperties = null;
+                            Dictionary<uint, AsepriteUserPropertiesMap>? extensionProperties = null;
 
                             if (Calc.HasFlag(flags, ASE_USER_DATA_FLAG_HAS_TEXT))
                             {
@@ -509,10 +511,40 @@ public static partial class AsepriteFileLoader
                                 color = reader.ReadUnsafe<Rgba32>(Rgba32.StructSize);
                             }
 
+                            if (Calc.HasFlag(flags, ASE_USER_DATA_FLAG_HAS_PROPERTIES))
+                            {
+                                long currentPosition = reader.Position;
+                                uint chunkBytes = reader.ReadDword();
+
+                                uint propertyMapCount = reader.ReadDword();
+                                for (uint mapIndex = 0; mapIndex < propertyMapCount; ++mapIndex)
+                                {
+                                    AsepriteUserPropertiesMap properties = ReadUserPropertyMap(reader);
+                                    if (properties.Key == 0) // contains user properties
+                                    {
+                                        userProperties = properties;
+                                    }
+                                    else                     // contains extension properties
+                                    {
+                                        if (extensionProperties == null)
+                                            extensionProperties = new Dictionary<uint, AsepriteUserPropertiesMap>();
+                                        extensionProperties[properties.Key] = properties;
+                                    }
+                                }
+
+                                if (chunkBytes + currentPosition != reader.Position)
+                                {
+                                    throw new IOException("User property parsing resulted in misalignment of expected stream position. " +
+                                                          $"Expected {currentPosition + chunkBytes}, but arrived at {reader.Position}");
+                                }
+                            }
+
                             if (currentUserData is null && paletteRead)
                             {
                                 spriteUserData.Text = text;
                                 spriteUserData.Color = color;
+                                spriteUserData.Properties = userProperties;
+                                spriteUserData.ExtensionProperties = extensionProperties;
                             }
                             else if (currentUserData is not null)
                             {
@@ -520,6 +552,8 @@ public static partial class AsepriteFileLoader
                                 {
                                     currentUserData.Text = text;
                                     currentUserData.Color = color;
+                                    currentUserData.Properties = userProperties;
+                                    currentUserData.ExtensionProperties = extensionProperties;
                                 }
                                 else
                                 {
@@ -540,6 +574,8 @@ public static partial class AsepriteFileLoader
                                     currentUserData = tags[tagIterator++].UserData;
                                     currentUserData.Text = text;
                                     currentUserData.Color = color;
+                                    currentUserData.Properties = userProperties;
+                                    currentUserData.ExtensionProperties = extensionProperties;
 
                                     if (tagIterator < tags.Count)
                                     {
@@ -697,5 +733,157 @@ public static partial class AsepriteFileLoader
         }
 
         return new AsepriteFile(fileName, palette, fileHeader.CanvasWidth, fileHeader.CanvasHeight, depth, frames, layers, tags, slices, tilesets, spriteUserData, warnings);
+    }
+
+    private static AsepriteUserPropertiesMap ReadUserPropertyMap(AsepriteBinaryReader reader)
+    {
+        AsepriteUserPropertiesMap map = new AsepriteUserPropertiesMap();
+        map.Key = reader.ReadDword();
+
+        uint propertyCount = reader.ReadDword();
+        for (uint propertyIndex = 0; propertyIndex < propertyCount; ++propertyIndex)
+        {
+            AsepriteUserProperty property = ReadUserProperty(reader);
+            map.PropertyMap[property.Name] = property;
+        }
+
+        return map;
+    }
+
+    private static AsepriteUserProperty ReadUserProperty(AsepriteBinaryReader reader)
+    {
+        var property = new AsepriteUserProperty();
+        property.Name = reader.ReadString();
+        property.Type = (AsepriteUserPropertyType)reader.ReadWord();
+        property.Value = ReadUserPropertyValue(reader, property.Type);
+
+        return property;
+    }
+
+    private static object ReadUserPropertyValue(AsepriteBinaryReader reader, AsepriteUserPropertyType type)
+    {
+        object value;
+
+        switch (type)
+        {
+            case AsepriteUserPropertyType.Bool:
+                value = (reader.ReadByte() != 0);
+                break;
+
+            case AsepriteUserPropertyType.Int8:
+                value = (sbyte)reader.ReadByte();
+                break;
+
+            case AsepriteUserPropertyType.UInt8:
+                value = reader.ReadByte();
+                break;
+
+            case AsepriteUserPropertyType.Int16:
+                value = reader.ReadShort();
+                break;
+
+            case AsepriteUserPropertyType.UInt16:
+                value = reader.ReadWord();
+                break;
+
+            case AsepriteUserPropertyType.Int32:
+                value = reader.ReadLong();
+                break;
+
+            case AsepriteUserPropertyType.UInt32:
+                value = reader.ReadDword();
+                break;
+
+            case AsepriteUserPropertyType.Int64:
+                value = reader.ReadUnsafe<long>(sizeof(long));
+                break;
+
+            case AsepriteUserPropertyType.UInt64:
+                value = reader.ReadUnsafe<ulong>(sizeof(ulong));
+                break;
+
+            case AsepriteUserPropertyType.Fixed:
+                value = reader.ReadFixed();
+                break;
+
+            case AsepriteUserPropertyType.Float:
+                value = reader.ReadFloat();
+                break;
+
+            case AsepriteUserPropertyType.Double:
+                value = reader.ReadUnsafe<double>(sizeof(double));
+                break;
+
+            case AsepriteUserPropertyType.String:
+                value = reader.ReadString();
+                break;
+
+            case AsepriteUserPropertyType.Point:
+                value = new Point(reader.ReadLong(), reader.ReadLong());
+                break;
+
+            case AsepriteUserPropertyType.Size:
+                value = new Size(reader.ReadLong(), reader.ReadLong());
+                break;
+
+            case AsepriteUserPropertyType.Rect:
+                value = new Rectangle(
+                    reader.ReadLong(), reader.ReadLong(),
+                    reader.ReadLong(), reader.ReadLong());
+                break;
+
+            case AsepriteUserPropertyType.Vector:
+                uint elementCount = reader.ReadDword();
+                AsepriteUserPropertyType allElementTypes = (AsepriteUserPropertyType)reader.ReadWord();
+
+                var vector = new AsepriteUserProperty[elementCount];
+                if (allElementTypes == AsepriteUserPropertyType.None) // all elements are not the same type
+                {
+                    for (int elementIndex = 0; elementIndex < elementCount; ++elementIndex)
+                    {
+                        AsepriteUserPropertyType elementType = (AsepriteUserPropertyType)reader.ReadWord();
+                        object elementValue = ReadUserPropertyValue(reader, elementType);
+
+                        vector[elementIndex] = new AsepriteUserProperty { Type = elementType, Value = elementValue };
+                    }
+                }
+                else // all elements are the same type
+                {
+                    for (int elementIndex = 0; elementIndex < elementCount; ++elementIndex)
+                    {
+                        object elementValue = ReadUserPropertyValue(reader, allElementTypes);
+                        vector[elementIndex] =
+                            new AsepriteUserProperty { Type = allElementTypes, Value = elementValue };
+                    }
+                }
+
+                value = vector;
+                break;
+
+            case AsepriteUserPropertyType.Properties: // nested property map
+
+                AsepriteUserPropertiesMap map = new AsepriteUserPropertiesMap();
+                map.Key = ushort.MaxValue; // Null, not used
+
+                uint propertyCount = reader.ReadDword();
+                for (int propertyIndex = 0; propertyIndex < propertyCount; ++propertyIndex)
+                {
+                    AsepriteUserProperty property = ReadUserProperty(reader);
+                    map.PropertyMap[property.Name] = property;
+                }
+
+                value = map;
+                break;
+
+            case AsepriteUserPropertyType.Uuid:
+                value = reader.ReadBytes(16);
+                break;
+
+            default:
+                throw new InvalidEnumArgumentException(
+                    "Unknown AsepriteUserPropertyType enum value: 0x" + type.ToString("X"));
+        }
+
+        return value;
     }
 }

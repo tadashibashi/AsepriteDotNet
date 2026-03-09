@@ -25,6 +25,19 @@ public sealed class AsepriteUserData
     public bool HasColor => Color is not null;
 
     /// <summary>
+    /// Gets a value that indicates whether this user data contains a value for the <see cref="Properties" /> property.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Properties))]
+    public bool HasProperties => Properties is not null;
+
+    /// <summary>
+    /// Gets a value that indicates whether this user data contains a value for the
+    /// <see cref="ExtensionProperties" /> property.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(ExtensionProperties))]
+    public bool HasExtensionProperties => ExtensionProperties is not null;
+
+    /// <summary>
     /// Gets the text that was set for this user data in Aseprite.
     /// </summary>
     public string? Text { get; internal set; }
@@ -34,9 +47,21 @@ public sealed class AsepriteUserData
     /// </summary>
     public Rgba32? Color { get; internal set; }
 
+    /// <summary>
+    /// Gets a map of user properties.
+    /// </summary>
+    public AsepriteUserPropertiesMap? Properties { get; internal set; }
+
+    /// <summary>
+    /// Gets a dictionary of extension property maps, indexed by Extension Entry ID.
+    /// </summary>
+    public Dictionary<uint, AsepriteUserPropertiesMap>? ExtensionProperties;
+
     internal AsepriteUserData()
     {
         Text = null;
         Color = null;
+        Properties = null;
+        ExtensionProperties = null;
     }
 }

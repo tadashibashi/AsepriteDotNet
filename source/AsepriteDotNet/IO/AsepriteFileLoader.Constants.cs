@@ -52,6 +52,7 @@ public static partial class AsepriteFileLoader
 
     private const uint ASE_USER_DATA_FLAG_HAS_TEXT = 1;
     private const uint ASE_USER_DATA_FLAG_HAS_COLOR = 2;
+    private const uint ASE_USER_DATA_FLAG_HAS_PROPERTIES = 4;
 
     private const uint ASE_SLICE_FLAGS_IS_NINE_PATCH = 1;
     private const uint ASE_SLICE_FLAGS_HAS_PIVOT = 2;
