@@ -23,12 +23,11 @@ public static class Rgba32Extensions
     /// Throw if <paramref name="rgba"/> parameter is <see langword="null"/>.
     ///
     /// -or-
-    /// 
+    ///
     /// Thrown if <paramref name="converter"/> parameter is <see langword="null"/>
     /// </exception>
     public static T As<T>(this Rgba32 rgba, Func<Rgba32, T> converter)
     {
-        ArgumentNullException.ThrowIfNull(rgba);
         ArgumentNullException.ThrowIfNull(converter);
         return converter(rgba);
     }
@@ -49,7 +48,7 @@ public static class Rgba32Extensions
     /// Throw if <paramref name="colors"/> parameter is <see langword="null"/>.
     ///
     /// -or-
-    /// 
+    ///
     /// Thrown if <paramref name="converter"/> parameter is <see langword="null"/>
     /// </exception>
     public static T[] As<T>(this Rgba32[] colors, Func<Rgba32, T> converter)

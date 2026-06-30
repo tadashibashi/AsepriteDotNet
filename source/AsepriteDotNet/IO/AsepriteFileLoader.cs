@@ -253,7 +253,7 @@ public static partial class AsepriteFileLoader
 
         AsepriteColorDepth depth = (AsepriteColorDepth)fileHeader.Depth;
 
-        if (!Enum.IsDefined(typeof(AsepriteColorDepth), depth))
+        if (!Enum.IsDefined<AsepriteColorDepth>(depth))
         {
             reader.Dispose();
             throw new InvalidOperationException($"Invalid color depth mode: {fileHeader.Depth}");

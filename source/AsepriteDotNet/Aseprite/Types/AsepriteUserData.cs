@@ -55,7 +55,7 @@ public sealed class AsepriteUserData
     /// <summary>
     /// Gets a dictionary of extension property maps, indexed by Extension Entry ID.
     /// </summary>
-    public Dictionary<uint, AsepritePropertiesMap>? ExtensionProperties;
+    public Dictionary<uint, AsepritePropertiesMap>? ExtensionProperties { get; internal set; }
 
     internal AsepriteUserData()
     {

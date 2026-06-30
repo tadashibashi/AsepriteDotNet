@@ -6,6 +6,8 @@ using AsepriteDotNet.Aseprite.Types;
 
 namespace AsepriteDotNet.Aseprite;
 
+#pragma warning disable CA1720
+#pragma warning disable CA1028
 /// <summary>
 /// Indicates the type of value stored in an AsepriteUserProperty.
 /// </summary>
@@ -54,3 +56,5 @@ public enum AsepritePropertyType : ushort
     /// <summary>Value is a `byte[16]`</summary>
     Uuid,
 }
+#pragma warning restore CA1028
+#pragma warning restore CA1720
